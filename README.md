@@ -154,7 +154,7 @@ Este projeto é ideal para:
 
 ##  Autor
 
-**Pablo Hyan Ferreira**
+**Pabllo Hyan Ferreira**
 - GitHub: [@pabllohyanferreira](https://github.com/pabllohyanferreira)
 - Projeto desenvolvido para disciplina de **Big Data em Python**
 
