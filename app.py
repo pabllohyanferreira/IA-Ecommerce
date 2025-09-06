@@ -18,89 +18,264 @@ st.set_page_config(
     layout="wide"
 )
 
-# CSS personalizado com cores melhoradas
+# CSS personalizado com cores melhoradas e tema escuro consistente
 st.markdown("""
 <style>
+    /* Configuração global para tema escuro */
+    .stApp {
+        background-color: #1a1a1a;
+        color: white;
+    }
+    
+    /* Títulos principais */
     .main-header {
         font-size: 2.5rem;
-        color: #2E86AB;
+        color: #ffffff;
         text-align: center;
         margin-bottom: 1rem;
         font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }
     .sub-header {
-        color: #A23B72;
+        color: #e2e8f0;
         text-align: center;
         margin-bottom: 2rem;
         font-size: 1.2rem;
+        font-weight: 600;
     }
+    
+    /* Caixas de métricas com cores contrastantes */
     .metric-box {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
         color: white;
         padding: 1.5rem;
         border-radius: 15px;
         text-align: center;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
         margin: 0.5rem 0;
+        border: 2px solid #718096;
     }
     .metric-box h3 {
-        color: #E8F4FD;
+        color: #f7fafc;
         margin-bottom: 0.5rem;
         font-size: 1rem;
+        font-weight: 600;
     }
     .metric-box h2 {
         color: white;
         margin: 0;
         font-size: 2rem;
         font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
     }
+    
+    /* Caixas de informação */
     .info-box {
-        background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+        background: linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%);
         color: white;
         padding: 1.5rem;
         border-radius: 15px;
         margin: 1rem 0;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        border: 2px solid #4299e1;
     }
     .info-box h4 {
-        color: #E8F4FD;
+        color: #f7fafc;
         margin-bottom: 1rem;
+        font-weight: 600;
     }
     .info-box p {
         color: white;
         margin: 0.5rem 0;
         font-size: 1rem;
+        font-weight: 500;
     }
+    
+    /* Caixas de sucesso */
     .success-box {
-        background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+        background: linear-gradient(135deg, #22543d 0%, #2f855a 100%);
         color: white;
         padding: 1rem;
         border-radius: 10px;
         margin: 1rem 0;
         text-align: center;
+        border: 2px solid #68d391;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
     }
+    
+    /* Caixas de aviso */
     .warning-box {
-        background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+        background: linear-gradient(135deg, #c05621 0%, #dd6b20 100%);
         color: white;
         padding: 1rem;
         border-radius: 10px;
         margin: 1rem 0;
         text-align: center;
+        border: 2px solid #f6ad55;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
     }
+    
+    /* CSS FORÇADO para caixas de seleção - tema escuro */
     .stSelectbox > div > div {
-        background-color: #f8f9fa;
-        border-radius: 10px;
+        background-color: #2d3748 !important;
+        border: 2px solid #4a5568 !important;
+        border-radius: 10px !important;
+        color: white !important;
     }
+    
+    .stSelectbox > div > div:hover {
+        border-color: #718096 !important;
+        background-color: #4a5568 !important;
+    }
+    
+    /* Forçar fundo escuro na caixa principal do selectbox */
+    div[data-testid="stSelectbox"] > div > div {
+        background-color: #2d3748 !important;
+        border: 2px solid #4a5568 !important;
+        color: white !important;
+    }
+    
+    /* Forçar fundo escuro no container interno */
+    div[data-testid="stSelectbox"] > div > div > div {
+        background-color: #2d3748 !important;
+        color: white !important;
+    }
+    
+    /* Forçar fundo escuro no texto selecionado */
+    div[data-testid="stSelectbox"] > div > div > div > div {
+        background-color: #2d3748 !important;
+        color: white !important;
+    }
+    
+    /* Forçar fundo escuro no dropdown quando aberto */
+    div[data-testid="stSelectbox"] > div > div > div > div > div {
+        background-color: #2d3748 !important;
+        color: white !important;
+    }
+    
+    /* Forçar fundo escuro nas opções do dropdown */
+    div[data-testid="stSelectbox"] > div > div > div > div > div > div {
+        background-color: #2d3748 !important;
+        color: white !important;
+    }
+    
+    /* CSS adicional para garantir que funcione */
+    .stSelectbox div[role="combobox"] {
+        background-color: #2d3748 !important;
+        border: 2px solid #4a5568 !important;
+        color: white !important;
+    }
+    
+    .stSelectbox div[role="combobox"]:hover {
+        background-color: #4a5568 !important;
+        border-color: #718096 !important;
+    }
+    
+    /* Sliders com tema escuro */
     .stSlider > div > div > div {
-        background-color: #74b9ff;
+        background-color: #4a5568 !important;
     }
-    /* Remover underscores dos labels */
+    
+    /* Melhorar contraste dos textos */
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4 {
+        color: #ffffff !important;
+    }
+    
+    .stMarkdown p {
+        color: #e2e8f0 !important;
+    }
+    
+    /* Labels dos widgets */
     .stSelectbox label, .stSlider label, .stNumberInput label {
         text-transform: capitalize;
+        color: #ffffff !important;
+        font-weight: 700;
+        font-size: 1rem;
     }
-    /* Esconder labels com underscores */
-    .stSelectbox label:contains("_"), .stSlider label:contains("_") {
-        display: none;
+    
+    /* Melhorar sidebar */
+    .css-1d391kg {
+        background-color: #2d3748 !important;
+    }
+    
+    /* Melhorar tabelas */
+    .stDataFrame {
+        background-color: #2d3748 !important;
+        border: 2px solid #4a5568 !important;
+        border-radius: 8px;
+        color: white !important;
+    }
+    
+    /* Botões */
+    .stButton > button {
+        background-color: #e53e3e !important;
+        color: white !important;
+        border: 2px solid #c53030 !important;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    .stButton > button:hover {
+        background-color: #c53030 !important;
+        border-color: #e53e3e !important;
+    }
+    
+    /* Títulos das seções */
+    .stMarkdown h1 {
+        color: #ffffff !important;
+        border-bottom: 3px solid #4a5568;
+        padding-bottom: 10px;
+    }
+    .stMarkdown h2 {
+        color: #e2e8f0 !important;
+        border-bottom: 2px solid #718096;
+        padding-bottom: 8px;
+    }
+    .stMarkdown h3 {
+        color: #e2e8f0 !important;
+    }
+    
+    /* Radio buttons do sidebar */
+    .stRadio > div > label > div[data-testid="stMarkdownContainer"] {
+        color: #ffffff !important;
+    }
+    
+    /* Título do sidebar */
+    .css-1d391kg h1 {
+        color: #ffffff !important;
+    }
+    
+    /* Valores dos sliders */
+    .stSlider > div > div > div > div {
+        color: #ffffff !important;
+    }
+    
+    /* CSS adicional para forçar o tema escuro nos selectboxes */
+    .stSelectbox [data-baseweb="select"] {
+        background-color: #2d3748 !important;
+        border: 2px solid #4a5568 !important;
+        color: white !important;
+    }
+    
+    .stSelectbox [data-baseweb="select"]:hover {
+        background-color: #4a5568 !important;
+        border-color: #718096 !important;
+    }
+    
+    /* Forçar cor do texto selecionado */
+    .stSelectbox [data-baseweb="select"] > div {
+        background-color: #2d3748 !important;
+        color: white !important;
+    }
+    
+    /* Forçar cor das opções do dropdown */
+    .stSelectbox [data-baseweb="select"] [role="option"] {
+        background-color: #2d3748 !important;
+        color: white !important;
+    }
+    
+    .stSelectbox [data-baseweb="select"] [role="option"]:hover {
+        background-color: #4a5568 !important;
+        color: white !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -247,11 +422,25 @@ def show_overview(df_clientes, df_produtos, df_vendas):
     fig = px.line(vendas_mes, x='mes_ano', y='valor_total', 
                  title='Evolucao das Vendas',
                  labels={'valor_total': 'Receita (R$)', 'mes_ano': 'Mes'},
-                 color_discrete_sequence=['#74b9ff'])
+                 color_discrete_sequence=['#4299e1'])
     fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font_color='#2d3436'
+        plot_bgcolor='#2d3748',
+        paper_bgcolor='#1a1a1a',
+        font_color='#ffffff',
+        title_font_color='#ffffff',
+        title_font_size=18,
+        xaxis=dict(
+            color='#e2e8f0', 
+            gridcolor='#4a5568',
+            linecolor='#718096',
+            title_font_color='#ffffff'
+        ),
+        yaxis=dict(
+            color='#e2e8f0', 
+            gridcolor='#4a5568',
+            linecolor='#718096',
+            title_font_color='#ffffff'
+        )
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -267,8 +456,10 @@ def show_sales_analysis(df_vendas, df_produtos):
     # Tabela simples
     for i, (_, produto) in enumerate(top_produtos.iterrows(), 1):
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%); 
-                    color: white; padding: 1rem; border-radius: 10px; margin: 0.5rem 0;">
+        <div style="background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%); 
+                    color: white; padding: 1rem; border-radius: 10px; margin: 0.5rem 0;
+                    border: 2px solid #a5b4fc; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+                    font-weight: 600;">
             <strong>{i}.</strong> {produto['nome']} - {produto['categoria']}<br>
              R$ {produto['valor_total']:,.2f}
         </div>
@@ -282,12 +473,26 @@ def show_sales_analysis(df_vendas, df_produtos):
     fig = px.bar(receita_categoria, x='categoria', y='valor_total',
                 title='Receita por Categoria',
                 labels={'valor_total': 'Receita (R$)', 'categoria': 'Categoria'},
-                color_discrete_sequence=['#00b894', '#00cec9', '#55a3ff', '#a29bfe', '#fd79a8'])
+                color_discrete_sequence=['#38a169', '#2f855a', '#22543d', '#4c51bf', '#553c9a'])
     fig.update_layout(
         xaxis_tickangle=45,
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font_color='#2d3436'
+        plot_bgcolor='#2d3748',
+        paper_bgcolor='#1a1a1a',
+        font_color='#ffffff',
+        title_font_color='#ffffff',
+        title_font_size=18,
+        xaxis=dict(
+            color='#e2e8f0', 
+            gridcolor='#4a5568',
+            linecolor='#718096',
+            title_font_color='#ffffff'
+        ),
+        yaxis=dict(
+            color='#e2e8f0', 
+            gridcolor='#4a5568',
+            linecolor='#718096',
+            title_font_color='#ffffff'
+        )
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -302,11 +507,25 @@ def show_customers(df_clientes):
         fig = px.histogram(df_clientes, x='idade', nbins=20, 
                           title='Distribuicao de Idades',
                           labels={'idade': 'Idade', 'count': 'Quantidade'},
-                          color_discrete_sequence=['#74b9ff'])
+                          color_discrete_sequence=['#4299e1'])
         fig.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font_color='#2d3436'
+            plot_bgcolor='#2d3748',
+            paper_bgcolor='#1a1a1a',
+            font_color='#ffffff',
+            title_font_color='#ffffff',
+            title_font_size=16,
+            xaxis=dict(
+                color='#e2e8f0', 
+                gridcolor='#4a5568',
+                linecolor='#718096',
+                title_font_color='#ffffff'
+            ),
+            yaxis=dict(
+                color='#e2e8f0', 
+                gridcolor='#4a5568',
+                linecolor='#718096',
+                title_font_color='#ffffff'
+            )
         )
         st.plotly_chart(fig, use_container_width=True)
     
@@ -315,11 +534,25 @@ def show_customers(df_clientes):
         fig = px.histogram(df_clientes, x='renda_mensal', nbins=20,
                           title='Distribuicao de Renda',
                           labels={'renda_mensal': 'Renda Mensal (R$)', 'count': 'Quantidade'},
-                          color_discrete_sequence=['#00b894'])
+                          color_discrete_sequence=['#38a169'])
         fig.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font_color='#2d3436'
+            plot_bgcolor='#2d3748',
+            paper_bgcolor='#1a1a1a',
+            font_color='#ffffff',
+            title_font_color='#ffffff',
+            title_font_size=16,
+            xaxis=dict(
+                color='#e2e8f0', 
+                gridcolor='#4a5568',
+                linecolor='#718096',
+                title_font_color='#ffffff'
+            ),
+            yaxis=dict(
+                color='#e2e8f0', 
+                gridcolor='#4a5568',
+                linecolor='#718096',
+                title_font_color='#ffffff'
+            )
         )
         st.plotly_chart(fig, use_container_width=True)
     
@@ -328,11 +561,13 @@ def show_customers(df_clientes):
     tipo_clientes = df_clientes['tipo_cliente'].value_counts()
     fig = px.pie(values=tipo_clientes.values, names=tipo_clientes.index,
                 title='Distribuicao por Tipo de Cliente',
-                color_discrete_sequence=['#fd79a8', '#fdcb6e', '#6c5ce7'])
+                color_discrete_sequence=['#f6ad55', '#ed8936', '#4c51bf'])
     fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font_color='#2d3436'
+        plot_bgcolor='#2d3748',
+        paper_bgcolor='#1a1a1a',
+        font_color='#ffffff',
+        title_font_color='#ffffff',
+        title_font_size=16
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -382,8 +617,18 @@ def show_ai_predictions(df_clientes, df_produtos, df_vendas):
     with col2:
         st.write("** Dados do Produto**")
         avaliacao = st.slider("Avaliacao", 1.0, 5.0, 4.0, 0.1, key="avaliacao_slider")
-        mes = st.selectbox("Mes", range(1, 13), index=5, key="mes_select")
-        dia_semana = st.selectbox("Dia da Semana", range(7), index=0, key="dia_select")
+        
+        # Mês com nomes
+        meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+        mes_selecionado = st.selectbox("Mes", meses, index=5, key="mes_select")
+        mes = meses.index(mes_selecionado) + 1  # Converter para número (1-12)
+        
+        # Dia da semana com nomes
+        dias_semana = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 
+                      'Sexta-feira', 'Sábado', 'Domingo']
+        dia_selecionado = st.selectbox("Dia da Semana", dias_semana, index=0, key="dia_select")
+        dia_semana = dias_semana.index(dia_selecionado)  # Converter para número (0-6)
     
     if st.button(" Prever Venda", type="primary"):
         # Fazer predicao
@@ -423,11 +668,25 @@ def show_charts(df_vendas, df_produtos):
     fig = px.bar(vendas_dia, x='dia_semana_nome', y='valor_total',
                 title='Vendas por Dia da Semana',
                 labels={'valor_total': 'Receita (R$)', 'dia_semana_nome': 'Dia'},
-                color_discrete_sequence=['#74b9ff', '#00b894', '#fdcb6e', '#e17055', '#6c5ce7', '#a29bfe', '#fd79a8'])
+                color_discrete_sequence=['#4299e1', '#38a169', '#f6ad55', '#e53e3e', '#4c51bf', '#553c9a', '#ed8936'])
     fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font_color='#2d3436'
+        plot_bgcolor='#2d3748',
+        paper_bgcolor='#1a1a1a',
+        font_color='#ffffff',
+        title_font_color='#ffffff',
+        title_font_size=16,
+        xaxis=dict(
+            color='#e2e8f0', 
+            gridcolor='#4a5568',
+            linecolor='#718096',
+            title_font_color='#ffffff'
+        ),
+        yaxis=dict(
+            color='#e2e8f0', 
+            gridcolor='#4a5568',
+            linecolor='#718096',
+            title_font_color='#ffffff'
+        )
     )
     st.plotly_chart(fig, use_container_width=True)
     
@@ -437,11 +696,13 @@ def show_charts(df_vendas, df_produtos):
     
     fig = px.pie(vendas_pagamento, values='valor_total', names='metodo_pagamento',
                 title='Vendas por Metodo de Pagamento',
-                color_discrete_sequence=['#74b9ff', '#00b894', '#fdcb6e', '#e17055'])
+                color_discrete_sequence=['#4299e1', '#38a169', '#f6ad55', '#e53e3e'])
     fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font_color='#2d3436'
+        plot_bgcolor='#2d3748',
+        paper_bgcolor='#1a1a1a',
+        font_color='#ffffff',
+        title_font_color='#ffffff',
+        title_font_size=16
     )
     st.plotly_chart(fig, use_container_width=True)
     
@@ -450,11 +711,25 @@ def show_charts(df_vendas, df_produtos):
     fig = px.histogram(df_produtos, x='avaliacao', nbins=20,
                       title='Distribuicao das Avaliacoes',
                       labels={'avaliacao': 'Avaliacao', 'count': 'Quantidade'},
-                      color_discrete_sequence=['#fd79a8'])
+                      color_discrete_sequence=['#f6ad55'])
     fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font_color='#2d3436'
+        plot_bgcolor='#2d3748',
+        paper_bgcolor='#1a1a1a',
+        font_color='#ffffff',
+        title_font_color='#ffffff',
+        title_font_size=16,
+        xaxis=dict(
+            color='#e2e8f0', 
+            gridcolor='#4a5568',
+            linecolor='#718096',
+            title_font_color='#ffffff'
+        ),
+        yaxis=dict(
+            color='#e2e8f0', 
+            gridcolor='#4a5568',
+            linecolor='#718096',
+            title_font_color='#ffffff'
+        )
     )
     st.plotly_chart(fig, use_container_width=True)
 
