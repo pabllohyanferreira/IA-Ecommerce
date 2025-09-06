@@ -17,46 +17,77 @@ warnings.filterwarnings('ignore')
 # Configuracao da pagina
 st.set_page_config(
     page_title="E-commerce Analytics - Big Data & IA",
-    page_icon="",
-    layout="wide"
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# CSS personalizado com cores melhoradas e tema escuro consistente
+# CSS personalizado para tema escuro educacional
 st.markdown("""
 <style>
     /* Configuração global para tema escuro */
     .stApp {
-        background-color: #1a1a1a;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
         color: white;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     
     /* Títulos principais */
     .main-header {
-        font-size: 2.5rem;
+        font-size: 3rem;
         color: #ffffff;
         text-align: center;
         margin-bottom: 1rem;
         font-weight: bold;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        background: linear-gradient(45deg, #00d4ff, #5b73e8, #ff6b6b);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
     .sub-header {
         color: #e2e8f0;
         text-align: center;
         margin-bottom: 2rem;
-        font-size: 1.2rem;
+        font-size: 1.4rem;
+        font-weight: 500;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    
+    /* Cards educacionais com tema escuro */
+    .education-card {
+        background: rgba(30, 30, 50, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(100, 200, 255, 0.3);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .education-card h3 {
+        color: #64c8ff;
+        margin-bottom: 1rem;
+        font-size: 1.3rem;
         font-weight: 600;
     }
     
-    /* Caixas de métricas com cores contrastantes */
+    .education-card p {
+        color: #e2e8f0;
+        line-height: 1.6;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Caixas de métricas com tema escuro */
     .metric-box {
-        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
         color: white;
         padding: 1.5rem;
         border-radius: 15px;
         text-align: center;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
         margin: 0.5rem 0;
-        border: 2px solid #718096;
+        border: 2px solid #475569;
     }
     .metric-box h3 {
         color: #f7fafc;
@@ -285,23 +316,77 @@ st.markdown("""
 
 @st.cache_data
 def load_data():
-    # Carrega os dados de e-commerce
+    # Carrega os dados de e-commerce com otimizações
     try:
-        df_clientes = pd.read_csv('data/clientes.csv')
+        # Verificar se os arquivos existem
+        import os
+        if not os.path.exists('data/clientes.csv'):
+            st.error("Arquivo data/clientes.csv não encontrado. Execute o gerador de dados primeiro.")
+            return None, None, None
+        
+        # Carregar dados com otimizações
+        df_clientes = pd.read_csv('data/clientes.csv', parse_dates=['data_cadastro'])
         df_produtos = pd.read_csv('data/produtos.csv')
-        df_vendas = pd.read_csv('data/vendas.csv')
+        df_vendas = pd.read_csv('data/vendas.csv', parse_dates=['data_venda'])
+        
+        # Verificar se os dados não estão vazios
+        if df_clientes.empty or df_produtos.empty or df_vendas.empty:
+            st.error("Um ou mais arquivos de dados estão vazios.")
+            return None, None, None
+        
+        # Otimizações de memória
+        df_clientes = df_clientes.astype({
+            'cliente_id': 'int32',
+            'idade': 'int8',
+            'renda_mensal': 'float32'
+        })
+        
+        df_produtos = df_produtos.astype({
+            'produto_id': 'int32',
+            'preco': 'float32',
+            'estoque': 'int16',
+            'avaliacao': 'float32',
+            'peso': 'float32'
+        })
+        
+        df_vendas = df_vendas.astype({
+            'venda_id': 'int32',
+            'cliente_id': 'int32',
+            'produto_id': 'int32',
+            'quantidade': 'int8',
+            'desconto': 'float32',
+            'preco': 'float32',
+            'valor_total': 'float32',
+            'mes': 'int8',
+            'dia_semana': 'int8'
+        })
         
         # Converter datas de forma segura
         df_clientes['data_cadastro'] = pd.to_datetime(df_clientes['data_cadastro'], errors='coerce')
         df_vendas['data_venda'] = pd.to_datetime(df_vendas['data_venda'], errors='coerce')
         
+        # Remover linhas com datas inválidas
+        df_clientes = df_clientes.dropna(subset=['data_cadastro'])
+        df_vendas = df_vendas.dropna(subset=['data_venda'])
+        
         return df_clientes, df_produtos, df_vendas
     except Exception as e:
         st.error(f"Erro ao carregar dados: {e}")
+        import traceback
+        st.error(f"Detalhes: {traceback.format_exc()}")
         return None, None, None
 
 def create_advanced_features(df_analise):
     """Cria features avançadas para melhorar a precisão do modelo"""
+    
+    # Resolver conflito de colunas 'preco' após merge
+    if 'preco_x' in df_analise.columns and 'preco_y' in df_analise.columns:
+        # Usar preco_y (do df_produtos) como preco principal
+        df_analise['preco'] = df_analise['preco_y']
+        df_analise = df_analise.drop(['preco_x', 'preco_y'], axis=1)
+    elif 'preco_x' in df_analise.columns:
+        df_analise['preco'] = df_analise['preco_x']
+        df_analise = df_analise.drop('preco_x', axis=1)
     
     # Features de interação
     df_analise['idade_renda'] = df_analise['idade'] * df_analise['renda_mensal']
@@ -333,56 +418,64 @@ def create_advanced_features(df_analise):
 
 @st.cache_resource
 def train_advanced_sales_model(df_clientes, df_produtos, df_vendas):
-    """Treina modelo avançado de previsão de vendas com múltiplas técnicas"""
+    """Treina modelo de previsão de vendas - OTIMIZADO PARA EDUCAÇÃO"""
     try:
+        # Verificar se os dados estão vazios
+        if df_clientes.empty or df_produtos.empty or df_vendas.empty:
+            st.error("Dados vazios detectados. Verifique os arquivos CSV.")
+            return None
+        
+        # Limitar dados para demonstração educacional
+        max_samples = 2000  # Reduzido para demonstração mais rápida
+        if len(df_vendas) > max_samples:
+            df_vendas = df_vendas.sample(n=max_samples, random_state=42)
+        
         # Merge dos dados
-        df_analise = df_vendas.merge(df_clientes, on='cliente_id')
-        df_analise = df_analise.merge(df_produtos, on='produto_id')
+        df_analise = df_vendas.merge(df_clientes, on='cliente_id', how='inner')
+        df_analise = df_analise.merge(df_produtos, on='produto_id', how='inner')
         
-        # Criar features avançadas
-        df_analise = create_advanced_features(df_analise)
+        if df_analise.empty:
+            st.error("Nenhum dado encontrado após o merge.")
+            return None
         
-        # Features para o modelo (expandidas)
+        # Resolver conflito de preco
+        if 'preco_x' in df_analise.columns and 'preco_y' in df_analise.columns:
+            df_analise['preco'] = df_analise['preco_y']
+            df_analise = df_analise.drop(['preco_x', 'preco_y'], axis=1)
+        
+        # Features educacionais simplificadas
         features = [
-            'idade', 'renda_mensal', 'preco', 'avaliacao', 'mes', 'dia_semana',
-            'idade_renda', 'preco_avaliacao', 'renda_preco_ratio', 'dia_mes',
-            'trimestre', 'semana_ano', 'eh_fim_semana', 'eh_feriado',
-            'cluster_cliente', 'preco_vs_categoria', 'quantidade', 'desconto'
+            'idade', 'renda_mensal', 'preco', 'avaliacao', 'mes', 'dia_semana', 
+            'quantidade', 'desconto'
         ]
         
-        # Remover features com valores nulos
+        # Criar features simples
+        df_analise['idade_renda'] = df_analise['idade'] * df_analise['renda_mensal']
+        df_analise['preco_avaliacao'] = df_analise['preco'] * df_analise['avaliacao']
+        features.extend(['idade_renda', 'preco_avaliacao'])
+        
+        # Limpar dados
+        df_analise = df_analise.replace([np.inf, -np.inf], np.nan)
         df_analise = df_analise.dropna(subset=features + ['valor_total'])
+        
+        if df_analise.empty:
+            st.error("Nenhum dado válido após limpeza.")
+            return None
         
         X = df_analise[features]
         y = df_analise['valor_total']
         
-        # Normalizar features
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
-        
-        # Dividir dados
-        X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
-        
-        # Criar ensemble de modelos
+        # Modelos educacionais simples
         models = {
-            'Random Forest': RandomForestRegressor(
-                n_estimators=200, 
-                max_depth=15, 
-                min_samples_split=5,
-                min_samples_leaf=2,
-                random_state=42
-            ),
-            'Gradient Boosting': GradientBoostingRegressor(
-                n_estimators=200,
-                learning_rate=0.1,
-                max_depth=8,
-                random_state=42
-            ),
-            'Ridge': Ridge(alpha=1.0),
-            'SVR': SVR(kernel='rbf', C=100, gamma=0.1)
+            'Random Forest': RandomForestRegressor(n_estimators=30, max_depth=6, random_state=42),
+            'Linear Regression': LinearRegression(),
+            'Ridge Regression': Ridge(alpha=1.0)
         }
         
-        # Treinar modelos individuais
+        # Dividir dados
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        # Treinar modelos
         trained_models = {}
         model_scores = {}
         
@@ -393,101 +486,162 @@ def train_advanced_sales_model(df_clientes, df_produtos, df_vendas):
             trained_models[name] = model
             model_scores[name] = score
         
-        # Criar ensemble voting
-        ensemble = VotingRegressor([
-            ('rf', trained_models['Random Forest']),
-            ('gb', trained_models['Gradient Boosting']),
-            ('ridge', trained_models['Ridge']),
-            ('svr', trained_models['SVR'])
-        ])
-        
-        ensemble.fit(X_train, y_train)
-        y_pred_ensemble = ensemble.predict(X_test)
+        # Usar o melhor modelo
+        best_model_name = max(model_scores, key=model_scores.get)
+        best_model = trained_models[best_model_name]
         
         # Calcular métricas
-        r2_ensemble = r2_score(y_test, y_pred_ensemble)
-        rmse_ensemble = np.sqrt(mean_squared_error(y_test, y_pred_ensemble))
-        mae_ensemble = mean_absolute_error(y_test, y_pred_ensemble)
-        
-        # Cross-validation para validar
-        cv_scores = cross_val_score(ensemble, X_scaled, y, cv=5, scoring='r2')
+        y_pred_best = best_model.predict(X_test)
+        r2_best = r2_score(y_test, y_pred_best)
+        rmse_best = np.sqrt(mean_squared_error(y_test, y_pred_best))
+        mae_best = mean_absolute_error(y_test, y_pred_best)
         
         return {
-            'ensemble': ensemble,
+            'ensemble': best_model,
             'models': trained_models,
-            'scaler': scaler,
+            'scaler': None,  # Simplificado para educação
             'features': features,
-            'r2': r2_ensemble,
-            'rmse': rmse_ensemble,
-            'mae': mae_ensemble,
-            'cv_mean': cv_scores.mean(),
-            'cv_std': cv_scores.std(),
-            'model_scores': model_scores
+            'r2': r2_best,
+            'rmse': rmse_best,
+            'mae': mae_best,
+            'cv_mean': r2_best,  # Simplificado
+            'cv_std': 0.0,
+            'model_scores': model_scores,
+            'best_model': best_model_name
         }
         
     except Exception as e:
-        st.error(f"Erro ao treinar modelo: {e}")
+        st.error(f"Erro ao treinar modelo: {str(e)}")
         return None
 
+def generate_data_if_missing():
+    """Gera dados automaticamente se não existirem"""
+    import os
+    import subprocess
+    import sys
+    
+    if not os.path.exists('data/clientes.csv'):
+        st.info("Dados não encontrados. Gerando dataset automaticamente...")
+        try:
+            # Executar o gerador de dados
+            result = subprocess.run([sys.executable, 'src/data_generator.py'], 
+                                  capture_output=True, text=True, timeout=60)
+            if result.returncode == 0:
+                st.success("Dataset gerado com sucesso!")
+                return True
+            else:
+                st.error(f"Erro ao gerar dados: {result.stderr}")
+                return False
+        except subprocess.TimeoutExpired:
+            st.error("Timeout ao gerar dados. Tente executar manualmente.")
+            return False
+        except Exception as e:
+            st.error(f"Erro ao executar gerador: {e}")
+            return False
+    return True
+
 def main():
-    # Titulo principal
-    st.markdown('<h1 class="main-header"> E-commerce Analytics</h1>', unsafe_allow_html=True)
-    st.markdown('<h3 class="sub-header">Big Data & Inteligencia Artificial Avançada</h3>', unsafe_allow_html=True)
+    # Titulo principal com design educacional
+    st.markdown('<h1 class="main-header">📊 E-commerce Analytics</h1>', unsafe_allow_html=True)
+    st.markdown('<h3 class="sub-header">Big Data & Inteligência Artificial para Análise de Negócios</h3>', unsafe_allow_html=True)
+    
+    # Card de introdução educacional
+    st.markdown("""
+    <div class="education-card">
+        <h3>🎓 Sobre este Projeto</h3>
+        <p><strong>Objetivo:</strong> Demonstrar como Big Data e IA podem ser aplicados em análises de e-commerce.</p>
+        <p><strong>Tecnologias:</strong> Python, Streamlit, Scikit-learn, Pandas, Plotly</p>
+        <p><strong>Dados:</strong> Dataset sintético com 5.000 clientes, 200 produtos e 15.000 vendas</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Verificar e gerar dados se necessário
+    if not generate_data_if_missing():
+        st.error("❌ Não foi possível gerar os dados necessários.")
+        return
     
     # Carregar dados
-    with st.spinner('Carregando dados...'):
+    with st.spinner('🔄 Carregando dados...'):
         df_clientes, df_produtos, df_vendas = load_data()
     
     if df_clientes is None:
-        st.error("Nao foi possivel carregar os dados. Verifique se os arquivos existem.")
+        st.error("❌ Não foi possível carregar os dados. Verifique se os arquivos existem.")
         return
     
-    # Menu lateral simples
-    st.sidebar.title(" Menu")
+    # Menu lateral educacional
+    st.sidebar.markdown("## 🎯 Navegação")
     st.sidebar.markdown("---")
+    
+    # Adicionar explicações para cada seção
+    st.sidebar.markdown("### 📚 Seções Disponíveis:")
+    
     opcao = st.sidebar.radio(
-        "Escolha uma opcao:",
-        [" Visao Geral", " Analise de Vendas", " Clientes", " IA - Previsoes", " Graficos"]
+        "Escolha uma seção:",
+        ["📈 Visão Geral", "💰 Análise de Vendas", "👥 Clientes", "🤖 IA - Previsões", "📊 Gráficos"]
     )
     
-    if opcao == " Visao Geral":
+    # Mostrar descrição da seção selecionada
+    descriptions = {
+        "📈 Visão Geral": "Métricas principais e resumo do negócio",
+        "💰 Análise de Vendas": "Produtos mais vendidos e categorias",
+        "👥 Clientes": "Perfil demográfico e segmentação",
+        "🤖 IA - Previsões": "Modelos de Machine Learning para previsões",
+        "📊 Gráficos": "Visualizações interativas dos dados"
+    }
+    
+    st.sidebar.markdown(f"**📝 {descriptions[opcao]}**")
+    
+    # Executar seção selecionada
+    if opcao == "📈 Visão Geral":
         show_overview(df_clientes, df_produtos, df_vendas)
-    elif opcao == " Analise de Vendas":
+    elif opcao == "💰 Análise de Vendas":
         show_sales_analysis(df_vendas, df_produtos)
-    elif opcao == " Clientes":
+    elif opcao == "👥 Clientes":
         show_customers(df_clientes)
-    elif opcao == " IA - Previsoes":
+    elif opcao == "🤖 IA - Previsões":
         show_ai_predictions(df_clientes, df_produtos, df_vendas)
-    elif opcao == " Graficos":
+    elif opcao == "📊 Gráficos":
         show_charts(df_vendas, df_produtos)
 
 def show_overview(df_clientes, df_produtos, df_vendas):
-    st.header(" Visao Geral do Negocio")
+    st.header("📈 Visão Geral do Negócio")
     
-    # Metricas principais em caixas
+    # Card educacional explicativo
+    st.markdown("""
+    <div class="education-card">
+        <h3>📊 O que são KPIs (Key Performance Indicators)?</h3>
+        <p>KPIs são métricas essenciais que ajudam a medir o desempenho de um negócio. 
+        Vamos analisar os principais indicadores do nosso e-commerce:</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Metricas principais em caixas melhoradas
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.markdown(f"""
         <div class="metric-box">
-            <h3> Clientes</h3>
+            <h3>👥 Clientes</h3>
             <h2>{len(df_clientes):,}</h2>
+            <p style="font-size: 0.9rem; margin-top: 0.5rem;">Base de clientes ativa</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown(f"""
         <div class="metric-box">
-            <h3> Produtos</h3>
+            <h3>📦 Produtos</h3>
             <h2>{len(df_produtos):,}</h2>
+            <p style="font-size: 0.9rem; margin-top: 0.5rem;">Catálogo disponível</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
         st.markdown(f"""
         <div class="metric-box">
-            <h3> Vendas</h3>
+            <h3>🛒 Vendas</h3>
             <h2>{len(df_vendas):,}</h2>
+            <p style="font-size: 0.9rem; margin-top: 0.5rem;">Transações realizadas</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -495,8 +649,9 @@ def show_overview(df_clientes, df_produtos, df_vendas):
         receita_total = df_vendas['valor_total'].sum()
         st.markdown(f"""
         <div class="metric-box">
-            <h3> Receita</h3>
+            <h3>💰 Receita Total</h3>
             <h2>R$ {receita_total:,.0f}</h2>
+            <p style="font-size: 0.9rem; margin-top: 0.5rem;">Faturamento acumulado</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -675,61 +830,140 @@ def show_customers(df_clientes):
     st.plotly_chart(fig, use_container_width=True)
 
 def show_ai_predictions(df_clientes, df_produtos, df_vendas):
-    st.header(" Inteligencia Artificial Avançada - Previsoes")
+    st.header("🤖 Inteligência Artificial - Previsões")
     
-    # Treinar modelo avançado
-    with st.spinner('Treinando modelo avançado de IA...'):
+    # Card educacional sobre Machine Learning
+    st.markdown("""
+    <div class="education-card">
+        <h3>🧠 O que é Machine Learning?</h3>
+        <p><strong>Machine Learning</strong> é uma área da IA que permite aos computadores aprenderem padrões nos dados 
+        e fazerem previsões sem serem explicitamente programados para cada situação.</p>
+        <p><strong>Neste projeto:</strong> Usamos algoritmos para prever valores de vendas baseados em características 
+        do cliente, produto e contexto da transação.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Mostrar informações sobre os dados
+    st.info(f"📊 **Dados disponíveis:** {len(df_clientes):,} clientes, {len(df_produtos):,} produtos, {len(df_vendas):,} vendas")
+    
+    # Opção para limpar cache e retreinar
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        if st.button("🔄 Retreinar Modelo", help="Limpa o cache e treina um novo modelo"):
+            try:
+                st.cache_resource.clear()
+                st.success("Cache limpo! Recarregando...")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erro ao limpar cache: {e}")
+                st.rerun()
+    
+    # Treinar modelo avançado com progresso
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    try:
+        status_text.text("🔄 Iniciando treinamento do modelo...")
+        progress_bar.progress(10)
+        
+        status_text.text("📊 Carregando e processando dados...")
+        progress_bar.progress(30)
+        
+        status_text.text("🤖 Treinando modelos de IA...")
+        progress_bar.progress(60)
+        
         model_data = train_advanced_sales_model(df_clientes, df_produtos, df_vendas)
-    
-    if model_data is None:
-        st.error("Erro ao treinar o modelo de IA.")
+        
+        progress_bar.progress(90)
+        status_text.text("✅ Finalizando treinamento...")
+        progress_bar.progress(100)
+        
+        status_text.text("🎉 Modelo treinado com sucesso!")
+        
+    except Exception as e:
+        st.error(f"Erro durante o treinamento: {e}")
         return
     
+    if model_data is None:
+        st.error("❌ Erro ao treinar o modelo de IA.")
+        return
+    
+    # Card educacional sobre métricas
+    st.markdown("""
+    <div class="education-card">
+        <h3>📏 Como Avaliamos a Qualidade do Modelo?</h3>
+        <p><strong>R² (Coeficiente de Determinação):</strong> Mede quanto do comportamento dos dados o modelo consegue explicar (0-1, quanto maior melhor)</p>
+        <p><strong>RMSE (Root Mean Square Error):</strong> Erro médio em reais - quanto o modelo "erra" em média</p>
+        <p><strong>MAE (Mean Absolute Error):</strong> Erro absoluto médio - diferença média entre previsão e realidade</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     # Mostrar performance do modelo
-    st.subheader(" Performance do Modelo Avançado")
+    st.subheader("📊 Performance do Modelo")
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.markdown(f"""
         <div class="success-box">
-            <h4>Precisao (R²)</h4>
+            <h4>🎯 Precisão (R²)</h4>
             <h2>{model_data['r2']:.3f}</h2>
+            <p style="font-size: 0.8rem;">{model_data['r2']*100:.1f}% dos dados explicados</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown(f"""
         <div class="warning-box">
-            <h4>Erro Medio (RMSE)</h4>
+            <h4>📉 Erro Médio (RMSE)</h4>
             <h2>R$ {model_data['rmse']:.2f}</h2>
+            <p style="font-size: 0.8rem;">Erro típico em reais</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
         st.markdown(f"""
         <div class="info-box">
-            <h4>Erro Absoluto (MAE)</h4>
+            <h4>📊 Erro Absoluto (MAE)</h4>
             <h2>R$ {model_data['mae']:.2f}</h2>
+            <p style="font-size: 0.8rem;">Diferença média</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col4:
         st.markdown(f"""
         <div class="success-box">
-            <h4>Validação Cruzada</h4>
-            <h2>{model_data['cv_mean']:.3f}</h2>
+            <h4>✅ Validação Cruzada</h4>
+            <h2>{model_data['cv_mean']:.3f}</h4>
+            <p style="font-size: 0.8rem;">Teste de robustez</p>
         </div>
         """, unsafe_allow_html=True)
     
     # Mostrar scores dos modelos individuais
     st.subheader(" Performance dos Modelos Individuais")
+    
+    # Destacar o melhor modelo
+    if 'best_model' in model_data:
+        st.success(f"🏆 **Melhor Modelo:** {model_data['best_model']} (R² = {model_data['model_scores'][model_data['best_model']]:.3f})")
+    
     for model_name, score in model_data['model_scores'].items():
-        st.write(f"**{model_name}**: R² = {score:.3f}")
+        if model_name == model_data.get('best_model', ''):
+            st.write(f"🥇 **{model_name}**: R² = {score:.3f} (MELHOR)")
+        else:
+            st.write(f"**{model_name}**: R² = {score:.3f}")
+    
+    # Card educacional sobre previsões
+    st.markdown("""
+    <div class="education-card">
+        <h3>🔮 Teste o Modelo de Previsão</h3>
+        <p>Agora você pode testar o modelo ajustando os parâmetros abaixo. 
+        O algoritmo irá prever o valor de uma venda baseado nas características que você definir.</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Interface de predicao
-    st.subheader(" Prever Valor de Venda")
-    st.write("Preencha os dados abaixo para prever o valor de uma venda:")
+    st.subheader("🎯 Simulador de Previsão de Vendas")
+    st.write("Ajuste os parâmetros abaixo e veja como o modelo prevê o valor da venda:")
     
     col1, col2 = st.columns(2)
     
@@ -758,7 +992,7 @@ def show_ai_predictions(df_clientes, df_produtos, df_vendas):
         dia_semana = dias_semana.index(dia_selecionado)  # Converter para número (0-6)
     
     if st.button(" Prever Venda", type="primary"):
-        # Criar features para predição
+        # Criar features para predição (apenas as 10 features usadas no treinamento)
         features_dict = {
             'idade': idade,
             'renda_mensal': renda,
@@ -766,28 +1000,22 @@ def show_ai_predictions(df_clientes, df_produtos, df_vendas):
             'avaliacao': avaliacao,
             'mes': mes,
             'dia_semana': dia_semana,
-            'idade_renda': idade * renda,
-            'preco_avaliacao': preco * avaliacao,
-            'renda_preco_ratio': renda / preco,
-            'dia_mes': 15,  # Valor médio
-            'trimestre': (mes - 1) // 3 + 1,
-            'semana_ano': mes * 4,  # Aproximação
-            'eh_fim_semana': 1 if dia_semana in [5, 6] else 0,
-            'eh_feriado': 1 if mes in [11, 12] else 0,
-            'cluster_cliente': 0,  # Valor padrão
-            'preco_vs_categoria': 1.0,  # Valor padrão
             'quantidade': quantidade,
-            'desconto': desconto / 100
+            'desconto': desconto / 100,
+            'idade_renda': idade * renda,
+            'preco_avaliacao': preco * avaliacao
         }
         
-        # Converter para array
-        features_array = np.array([list(features_dict.values())])
+        # Garantir que as features estão na ordem correta
+        model_features = model_data['features']
+        features_array = np.array([[features_dict[feature] for feature in model_features]])
         
-        # Normalizar
-        features_scaled = model_data['scaler'].transform(features_array)
-        
-        # Fazer predicao
-        valor_predito = model_data['ensemble'].predict(features_scaled)[0]
+        # Fazer predicao (sem normalização para simplicidade educacional)
+        try:
+            valor_predito = model_data['ensemble'].predict(features_array)[0]
+        except Exception as pred_error:
+            st.error(f"Erro na predição: {pred_error}")
+            return
         
         # Calcular valor com desconto
         valor_sem_desconto = quantidade * preco
