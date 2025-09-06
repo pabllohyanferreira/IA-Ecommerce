@@ -34,10 +34,3 @@ Aplicação de análise de dados de e-commerce com dashboard interativo e modelo
    ```
    http://localhost:8501
    ```
-
-## Estrutura do Projeto
-
-```
-ia-python/
-├── ap
-```
