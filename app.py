@@ -3,11 +3,14 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, VotingRegressor
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.svm import SVR
 from sklearn.cluster import KMeans
-from sklearn.metrics import r2_score, mean_squared_error
-from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+from sklearn.preprocessing import StandardScaler, LabelEncoder, PolynomialFeatures
+from sklearn.feature_selection import SelectKBest, f_regression
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -297,39 +300,139 @@ def load_data():
         st.error(f"Erro ao carregar dados: {e}")
         return None, None, None
 
+def create_advanced_features(df_analise):
+    """Cria features avançadas para melhorar a precisão do modelo"""
+    
+    # Features de interação
+    df_analise['idade_renda'] = df_analise['idade'] * df_analise['renda_mensal']
+    df_analise['preco_avaliacao'] = df_analise['preco'] * df_analise['avaliacao']
+    df_analise['renda_preco_ratio'] = df_analise['renda_mensal'] / df_analise['preco']
+    
+    # Features temporais avançadas
+    df_analise['dia_mes'] = df_analise['data_venda'].dt.day
+    df_analise['trimestre'] = df_analise['data_venda'].dt.quarter
+    df_analise['semana_ano'] = df_analise['data_venda'].dt.isocalendar().week
+    
+    # Features de sazonalidade
+    df_analise['eh_fim_semana'] = df_analise['dia_semana'].isin([5, 6]).astype(int)
+    df_analise['eh_feriado'] = df_analise['mes'].isin([11, 12]).astype(int)  # Black Friday/Natal
+    
+    # Features de clustering de clientes
+    kmeans = KMeans(n_clusters=4, random_state=42)
+    df_analise['cluster_cliente'] = kmeans.fit_predict(df_analise[['idade', 'renda_mensal']])
+    
+    # Features de produto
+    df_analise['preco_categoria'] = df_analise.groupby('categoria')['preco'].transform('mean')
+    df_analise['preco_vs_categoria'] = df_analise['preco'] / df_analise['preco_categoria']
+    
+    # Features de desconto
+    df_analise['valor_sem_desconto'] = df_analise['quantidade'] * df_analise['preco']
+    df_analise['economia_desconto'] = df_analise['valor_sem_desconto'] - df_analise['valor_total']
+    
+    return df_analise
+
 @st.cache_resource
-def train_sales_model(df_clientes, df_produtos, df_vendas):
-    # Treina modelo simples de previsao de vendas
+def train_advanced_sales_model(df_clientes, df_produtos, df_vendas):
+    """Treina modelo avançado de previsão de vendas com múltiplas técnicas"""
     try:
         # Merge dos dados
         df_analise = df_vendas.merge(df_clientes, on='cliente_id')
-        df_analise = df_analise.merge(df_produtos[['produto_id', 'avaliacao']], on='produto_id')
+        df_analise = df_analise.merge(df_produtos, on='produto_id')
         
-        # Features para o modelo
-        features = ['idade', 'renda_mensal', 'preco', 'avaliacao', 'mes', 'dia_semana']
+        # Criar features avançadas
+        df_analise = create_advanced_features(df_analise)
+        
+        # Features para o modelo (expandidas)
+        features = [
+            'idade', 'renda_mensal', 'preco', 'avaliacao', 'mes', 'dia_semana',
+            'idade_renda', 'preco_avaliacao', 'renda_preco_ratio', 'dia_mes',
+            'trimestre', 'semana_ano', 'eh_fim_semana', 'eh_feriado',
+            'cluster_cliente', 'preco_vs_categoria', 'quantidade', 'desconto'
+        ]
+        
+        # Remover features com valores nulos
+        df_analise = df_analise.dropna(subset=features + ['valor_total'])
+        
         X = df_analise[features]
         y = df_analise['valor_total']
         
-        # Treinar modelo
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        # Normalizar features
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
         
-        modelo = RandomForestRegressor(n_estimators=50, random_state=42)
-        modelo.fit(X_train, y_train)
-        y_pred = modelo.predict(X_test)
+        # Dividir dados
+        X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
         
-        # Calcular metricas
-        r2 = r2_score(y_test, y_pred)
-        rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+        # Criar ensemble de modelos
+        models = {
+            'Random Forest': RandomForestRegressor(
+                n_estimators=200, 
+                max_depth=15, 
+                min_samples_split=5,
+                min_samples_leaf=2,
+                random_state=42
+            ),
+            'Gradient Boosting': GradientBoostingRegressor(
+                n_estimators=200,
+                learning_rate=0.1,
+                max_depth=8,
+                random_state=42
+            ),
+            'Ridge': Ridge(alpha=1.0),
+            'SVR': SVR(kernel='rbf', C=100, gamma=0.1)
+        }
         
-        return modelo, r2, rmse, features
+        # Treinar modelos individuais
+        trained_models = {}
+        model_scores = {}
+        
+        for name, model in models.items():
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+            score = r2_score(y_test, y_pred)
+            trained_models[name] = model
+            model_scores[name] = score
+        
+        # Criar ensemble voting
+        ensemble = VotingRegressor([
+            ('rf', trained_models['Random Forest']),
+            ('gb', trained_models['Gradient Boosting']),
+            ('ridge', trained_models['Ridge']),
+            ('svr', trained_models['SVR'])
+        ])
+        
+        ensemble.fit(X_train, y_train)
+        y_pred_ensemble = ensemble.predict(X_test)
+        
+        # Calcular métricas
+        r2_ensemble = r2_score(y_test, y_pred_ensemble)
+        rmse_ensemble = np.sqrt(mean_squared_error(y_test, y_pred_ensemble))
+        mae_ensemble = mean_absolute_error(y_test, y_pred_ensemble)
+        
+        # Cross-validation para validar
+        cv_scores = cross_val_score(ensemble, X_scaled, y, cv=5, scoring='r2')
+        
+        return {
+            'ensemble': ensemble,
+            'models': trained_models,
+            'scaler': scaler,
+            'features': features,
+            'r2': r2_ensemble,
+            'rmse': rmse_ensemble,
+            'mae': mae_ensemble,
+            'cv_mean': cv_scores.mean(),
+            'cv_std': cv_scores.std(),
+            'model_scores': model_scores
+        }
+        
     except Exception as e:
         st.error(f"Erro ao treinar modelo: {e}")
-        return None, 0, 0, []
+        return None
 
 def main():
     # Titulo principal
     st.markdown('<h1 class="main-header"> E-commerce Analytics</h1>', unsafe_allow_html=True)
-    st.markdown('<h3 class="sub-header">Big Data & Inteligencia Artificial</h3>', unsafe_allow_html=True)
+    st.markdown('<h3 class="sub-header">Big Data & Inteligencia Artificial Avançada</h3>', unsafe_allow_html=True)
     
     # Carregar dados
     with st.spinner('Carregando dados...'):
@@ -572,25 +675,26 @@ def show_customers(df_clientes):
     st.plotly_chart(fig, use_container_width=True)
 
 def show_ai_predictions(df_clientes, df_produtos, df_vendas):
-    st.header(" Inteligencia Artificial - Previsoes")
+    st.header(" Inteligencia Artificial Avançada - Previsoes")
     
-    # Treinar modelo
-    with st.spinner('Treinando modelo de IA...'):
-        modelo, r2, rmse, features = train_sales_model(df_clientes, df_produtos, df_vendas)
+    # Treinar modelo avançado
+    with st.spinner('Treinando modelo avançado de IA...'):
+        model_data = train_advanced_sales_model(df_clientes, df_produtos, df_vendas)
     
-    if modelo is None:
+    if model_data is None:
         st.error("Erro ao treinar o modelo de IA.")
         return
     
     # Mostrar performance do modelo
-    st.subheader(" Performance do Modelo")
-    col1, col2 = st.columns(2)
+    st.subheader(" Performance do Modelo Avançado")
+    
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.markdown(f"""
         <div class="success-box">
             <h4>Precisao (R²)</h4>
-            <h2>{r2:.3f}</h2>
+            <h2>{model_data['r2']:.3f}</h2>
         </div>
         """, unsafe_allow_html=True)
     
@@ -598,9 +702,30 @@ def show_ai_predictions(df_clientes, df_produtos, df_vendas):
         st.markdown(f"""
         <div class="warning-box">
             <h4>Erro Medio (RMSE)</h4>
-            <h2>R$ {rmse:.2f}</h2>
+            <h2>R$ {model_data['rmse']:.2f}</h2>
         </div>
         """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown(f"""
+        <div class="info-box">
+            <h4>Erro Absoluto (MAE)</h4>
+            <h2>R$ {model_data['mae']:.2f}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown(f"""
+        <div class="success-box">
+            <h4>Validação Cruzada</h4>
+            <h2>{model_data['cv_mean']:.3f}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Mostrar scores dos modelos individuais
+    st.subheader(" Performance dos Modelos Individuais")
+    for model_name, score in model_data['model_scores'].items():
+        st.write(f"**{model_name}**: R² = {score:.3f}")
     
     # Interface de predicao
     st.subheader(" Prever Valor de Venda")
@@ -613,6 +738,8 @@ def show_ai_predictions(df_clientes, df_produtos, df_vendas):
         idade = st.slider("Idade", 18, 80, 35, key="idade_slider")
         renda = st.slider("Renda Mensal (R$)", 1000, 50000, 5000, key="renda_slider")
         preco = st.slider("Preco do Produto (R$)", 10, 2000, 100, key="preco_slider")
+        quantidade = st.slider("Quantidade", 1, 10, 1, key="quantidade_slider")
+        desconto = st.slider("Desconto (%)", 0.0, 50.0, 0.0, key="desconto_slider")
     
     with col2:
         st.write("** Dados do Produto**")
@@ -631,15 +758,48 @@ def show_ai_predictions(df_clientes, df_produtos, df_vendas):
         dia_semana = dias_semana.index(dia_selecionado)  # Converter para número (0-6)
     
     if st.button(" Prever Venda", type="primary"):
+        # Criar features para predição
+        features_dict = {
+            'idade': idade,
+            'renda_mensal': renda,
+            'preco': preco,
+            'avaliacao': avaliacao,
+            'mes': mes,
+            'dia_semana': dia_semana,
+            'idade_renda': idade * renda,
+            'preco_avaliacao': preco * avaliacao,
+            'renda_preco_ratio': renda / preco,
+            'dia_mes': 15,  # Valor médio
+            'trimestre': (mes - 1) // 3 + 1,
+            'semana_ano': mes * 4,  # Aproximação
+            'eh_fim_semana': 1 if dia_semana in [5, 6] else 0,
+            'eh_feriado': 1 if mes in [11, 12] else 0,
+            'cluster_cliente': 0,  # Valor padrão
+            'preco_vs_categoria': 1.0,  # Valor padrão
+            'quantidade': quantidade,
+            'desconto': desconto / 100
+        }
+        
+        # Converter para array
+        features_array = np.array([list(features_dict.values())])
+        
+        # Normalizar
+        features_scaled = model_data['scaler'].transform(features_array)
+        
         # Fazer predicao
-        entrada = [[idade, renda, preco, avaliacao, mes, dia_semana]]
-        valor_predito = modelo.predict(entrada)[0]
+        valor_predito = model_data['ensemble'].predict(features_scaled)[0]
+        
+        # Calcular valor com desconto
+        valor_sem_desconto = quantidade * preco
+        valor_final = valor_sem_desconto * (1 - desconto/100)
         
         if valor_predito > 500:
             st.markdown(f"""
             <div class="success-box">
                 <h3> Venda de Alto Valor!</h3>
                 <h2>Valor Previsto: R$ {valor_predito:.2f}</h2>
+                <p>Valor Real: R$ {valor_final:.2f}</p>
+                <p>Precisão: {model_data['r2']*100:.1f}%</p>
             </div>
             """, unsafe_allow_html=True)
         elif valor_predito > 200:
@@ -647,6 +807,8 @@ def show_ai_predictions(df_clientes, df_produtos, df_vendas):
             <div class="info-box">
                 <h3> Venda de Valor Medio</h3>
                 <h2>Valor Previsto: R$ {valor_predito:.2f}</h2>
+                <p>Valor Real: R$ {valor_final:.2f}</p>
+                <p>Precisão: {model_data['r2']*100:.1f}%</p>
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -654,6 +816,8 @@ def show_ai_predictions(df_clientes, df_produtos, df_vendas):
             <div class="warning-box">
                 <h3> Venda de Baixo Valor</h3>
                 <h2>Valor Previsto: R$ {valor_predito:.2f}</h2>
+                <p>Valor Real: R$ {valor_final:.2f}</p>
+                <p>Precisão: {model_data['r2']*100:.1f}%</p>
             </div>
             """, unsafe_allow_html=True)
 
