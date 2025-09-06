@@ -247,4 +247,4 @@ R: Não, a interface é intuitiva e não requer conhecimento técnico.
 
 ---
 
-*Projeto desenvolvido por Pablo Hyan Ferreira para disciplina de Big Data em Python* 
+*Projeto desenvolvido por Pabllo Hyan Ferreira para disciplina de Big Data em Python* 
